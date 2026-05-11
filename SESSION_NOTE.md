@@ -251,3 +251,9 @@
 - Files edited: `README.md`, `TASKS.md`, `SESSION_NOTE.md`.
 - Files created: `GITHUB_SETUP.md`, `docs/PROJECT_DOCS.md`.
 - Verification: static review only; Git is not available in the current shell and this workspace does not yet contain a `.git` directory, so no init/commit/push command was executed from Codex.
+
+# 2026-05-11 - GitHub branch handoff to truongthinh994/DuLichAI
+
+- Updated `README.md` and `GITHUB_SETUP.md` so the documented GitHub remote now points to `https://github.com/truongthinh994/DuLichAI.git`.
+- Intentionally left local Gradle/cache folders (`android/`, `caches/`, `daemon/`, `kotlin-profile/`, `native/`, `wrapper/`) untracked so they are not included in the publish branch.
+- Next step from this workspace is to create a dedicated publish branch and push that branch to the target GitHub repo without touching remote `main`.

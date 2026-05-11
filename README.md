@@ -47,7 +47,7 @@ Repo local hiện tại có thể chưa được khởi tạo Git. Nếu bạn m
 cd "d:\Android Studio\TravelAI_2k-main"
 git init
 git branch -M main
-git remote add origin https://github.com/nguyenhuunghia10t1-creator/TravelAI_2k.git
+git remote add origin https://github.com/truongthinh994/DuLichAI.git
 git add .
 git commit -m "feat: initial TravelAI import"
 git push -u origin main
@@ -59,7 +59,7 @@ git push -u origin main
 cd "d:\Android Studio\TravelAI_2k-main"
 git init
 git branch -M main
-git remote add origin https://github.com/nguyenhuunghia10t1-creator/TravelAI_2k.git
+git remote add origin https://github.com/truongthinh994/DuLichAI.git
 git add .
 git commit -m "feat: initial TravelAI import"
 git pull origin main --allow-unrelated-histories
