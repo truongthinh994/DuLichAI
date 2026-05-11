@@ -257,3 +257,12 @@
 - Updated `README.md` and `GITHUB_SETUP.md` so the documented GitHub remote now points to `https://github.com/truongthinh994/DuLichAI.git`.
 - Intentionally left local Gradle/cache folders (`android/`, `caches/`, `daemon/`, `kotlin-profile/`, `native/`, `wrapper/`) untracked so they are not included in the publish branch.
 - Next step from this workspace is to create a dedicated publish branch and push that branch to the target GitHub repo without touching remote `main`.
+
+# 2026-05-11 - Thiết lập Kiến trúc Git Branching & CI/CD Workflow
+- Đã sửa lỗi cấu hình `compileSdk { version = release(36) }` thành `compileSdk = 34` trong `app/build.gradle.kts` để có thể build thành công.
+- Tự động hóa CI/CD với GitHub Actions (`.github/workflows/ci.yml`) để chạy lint và assembleDebug.
+- Bổ sung `PULL_REQUEST_TEMPLATE.md` và `CONTRIBUTING.md` hướng dẫn chi tiết quy tắc commit.
+- Cập nhật `.gitignore` để bỏ qua thư mục cache của Gradle user home (`caches/`, `daemon/`, `wrapper/`, v.v.).
+- Khởi tạo kiến trúc Git Branching (Git Flow): `main`, `develop`, các nhánh tính năng (`feature/login`, `feature/chat-ai`, `feature/maps`, `feature/offline-roomdb`) và nhánh sửa lỗi (`hotfix/crash-login`, `hotfix/api-timeout`).
+- Tiến hành checkout, push tất cả nhánh lên remote repo (`origin`).
+- Đã kiểm tra build với Android Studio JDK 17 (JBR) qua lệnh `assembleDebug` do Local JDK 25 gặp lỗi tương thích với Gradle.
