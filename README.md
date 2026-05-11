@@ -76,6 +76,16 @@ Nếu `git pull` báo conflict, giữ lại source code app hiện tại, rồi 
 
 Xem thêm hướng dẫn chi tiết trong [GITHUB_SETUP.md](GITHUB_SETUP.md).
 
+## Quy trình Branching (Git Flow)
+
+Dự án áp dụng mô hình quản lý nhánh chuyên nghiệp để đảm bảo ổn định và dễ dàng CI/CD:
+- **`main`**: Nhánh chứa code production ổn định nhất.
+- **`develop`**: Nhánh tích hợp code chính của team. Mọi tính năng mới đều gộp vào đây trước.
+- **`feature/<tên-tính-năng>`**: Nhánh phát triển tính năng mới. Được tạo từ `develop`.
+- **`hotfix/<tên-lỗi>`**: Nhánh sửa lỗi khẩn cấp trên production. Được tạo từ `main` và sau khi sửa xong cần merge về cả `main` lẫn `develop`.
+
+Vui lòng tham khảo [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm chi tiết về quy tắc commit và tạo PR.
+
 ## Tài liệu dự án và PDF gốc
 
 Repo đang có file PDF gốc [DuLichAI_Engineering_Core (1).pdf](<DuLichAI_Engineering_Core (1).pdf>) và bộ tài liệu markdown đã tách ra để dễ đọc trên GitHub:

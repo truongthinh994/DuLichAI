@@ -33,9 +33,7 @@ val hasReleaseSigningConfig = listOf(
 
 android {
     namespace = "com.travelai"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.travelai"
