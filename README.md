@@ -37,6 +37,57 @@ Nếu Android Studio đã mở project, IDE thường tự tạo dòng `sdk.dir`
 
 Không commit `local.properties`. File này chứa secret và đã nằm trong `.gitignore`.
 
+## Đưa project này lên GitHub
+
+Repo local hiện tại có thể chưa được khởi tạo Git. Nếu bạn muốn đưa toàn bộ project này lên repo GitHub của bạn, dùng một trong hai flow dưới đây.
+
+### Trường hợp 1: Repo GitHub đang trống
+
+```powershell
+cd "d:\Android Studio\TravelAI_2k-main"
+git init
+git branch -M main
+git remote add origin https://github.com/nguyenhuunghia10t1-creator/TravelAI_2k.git
+git add .
+git commit -m "feat: initial TravelAI import"
+git push -u origin main
+```
+
+### Trường hợp 2: Repo GitHub đã có sẵn README hoặc file khác
+
+```powershell
+cd "d:\Android Studio\TravelAI_2k-main"
+git init
+git branch -M main
+git remote add origin https://github.com/nguyenhuunghia10t1-creator/TravelAI_2k.git
+git add .
+git commit -m "feat: initial TravelAI import"
+git pull origin main --allow-unrelated-histories
+git push -u origin main
+```
+
+Nếu `git pull` báo conflict, giữ lại source code app hiện tại, rồi merge thủ công các file tài liệu như `README.md`.
+
+### Không nên đẩy lên GitHub
+
+- `local.properties`
+- Keystore thật dùng để ký release
+- API key DeepSeek thật
+
+Xem thêm hướng dẫn chi tiết trong [GITHUB_SETUP.md](GITHUB_SETUP.md).
+
+## Tài liệu dự án và PDF gốc
+
+Repo đang có file PDF gốc [DuLichAI_Engineering_Core (1).pdf](<DuLichAI_Engineering_Core (1).pdf>) và bộ tài liệu markdown đã tách ra để dễ đọc trên GitHub:
+
+- [IDEA.md](IDEA.md)
+- [PRD.md](PRD.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [AGENTS.md](AGENTS.md)
+- [docs/PROJECT_DOCS.md](docs/PROJECT_DOCS.md)
+
+Nếu mục tiêu là làm repo nhìn rõ ràng hơn trên GitHub, nên ưu tiên đọc các file `.md` này thay vì chỉ giữ PDF.
+
 ## Build debug APK
 
 ```powershell
@@ -121,14 +172,32 @@ Phần này chạy trên điện thoại thật sau khi cài APK.
    - Long-press vào message AI, paste sang app khác để xác nhận copy đúng nội dung.
    - Bấm `Chia sẻ`, xác nhận Android share sheet mở với toàn bộ nội dung chat hiện tại.
 
+6. Trip Planner V2 flow
+   - Bấm `Tạo chuyến` từ ChatScreen, nhập điểm đến, số ngày, ngân sách, số người, phong cách, phương tiện, ghi chú; bấm tạo.
+   - Xác nhận AI trả lịch trình theo trip profile vừa nhập, session title ưu tiên điểm đến/số ngày.
+   - Mở `Lịch trình`, kiểm tra parser tách Ngày/Sáng/Chiều/Tối; nếu parser không nhận diện được thì fallback raw text.
+   - Trong ItineraryScreen, thêm/sửa/xóa budget item và checklist item; force close app rồi mở lại để xác nhận lưu qua restart, tổng ngân sách cập nhật đúng.
+   - Vào Trip Library (`Lịch sử`), thử search theo title, rename, ghim/bỏ ghim, xóa, và Chia sẻ — nội dung share ưu tiên itinerary đã parse, không phải chat thô.
+
 ## Troubleshooting
 
 - `JAVA_HOME is not set`: mở bằng Android Studio hoặc set `JAVA_HOME` tới JBR của Android Studio.
 - Gradle/Kotlin daemon lỗi quyền trên Windows: chạy lại với Android Studio JBR và `GRADLE_USER_HOME` trong repo nếu cần.
 - `sdk.dir` sai: mở Android Studio SDK Manager, kiểm tra path SDK rồi cập nhật `local.properties`.
 - API trả 401/403: kiểm tra `DEEPSEEK_API_KEY` trong `local.properties`.
-- API timeout: app có timeout UX 15 giây và OkHttp read timeout 30 giây; thử lại khi mạng ổn định.
+- API timeout: app có timeout UX 15 giây và OkHttp connect/write 15s, read 30s, call 45s; thử lại khi mạng ổn định.
 
 ## Scope hiện tại
 
-MVP hiện có chat AI, multi-turn context, Room persistence, History screen, empty/loading/error states, retry, copy/share, debug/release build. Chưa có backend, account, Maps/GPS, streaming response hoặc booking integration.
+### V1 — MVP chat
+Chat AI với DeepSeek, multi-turn context, Room persistence, History screen, empty/loading/error states, retry, copy/share, debug/release build.
+
+### V2 — Trip planning
+- **Trip Planner form:** nhập điểm đến, số ngày, ngân sách, số người, phong cách, phương tiện, ghi chú để tạo session có cấu trúc.
+- **Itinerary parser + UI:** tự parse response của AI thành lịch trình theo Ngày / Sáng / Chiều / Tối; có raw fallback khi parser không bắt được.
+- **Budget planner:** CRUD budget item theo session (ăn uống, di chuyển, vé tham quan, khách sạn, phát sinh) + tổng dự kiến.
+- **Travel checklist:** CRUD checklist item, lưu trạng thái checkbox qua restart.
+- **Trip Library:** thay thế History — search theo title, rename, delete (CASCADE), pin/favorite, share/export ưu tiên itinerary đã parse.
+
+### Chưa có
+Backend / API key proxy, account, Google Maps/GPS, streaming response, booking integration, dark mode, localization (strings hiện hardcode tiếng Việt).
