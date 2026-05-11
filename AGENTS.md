@@ -68,11 +68,23 @@ app/src/main/java/com/travelai/
 │   │   ├── DeepSeekModels.kt      # data class Request, Response, Message, Choice
 │   │   └── ApiClient.kt           # OkHttp singleton + Retrofit builder
 │   ├── db/
-│   │   ├── AppDatabase.kt         # Room @Database, version 1
+│   │   ├── AppDatabase.kt         # Room @Database, version 6
 │   │   ├── ChatDao.kt             # @Dao queries
 │   │   └── entities/
 │   │       ├── ChatSession.kt     # @Entity
-│   │       └── ChatMessage.kt     # @Entity
+│   │       ├── ChatMessage.kt     # @Entity
+│   │       ├── TripProfileEntity.kt # @Entity trip profile theo session
+│   │       ├── TripPlanSnapshotEntity.kt # @Entity raw + parsed itinerary snapshot
+│   │       ├── BudgetItemEntity.kt # @Entity budget item theo session
+│   │       └── ChecklistItemEntity.kt # @Entity checklist item theo session
+│   ├── model/
+│   │   ├── TripProfile.kt         # Domain model + prompt helpers cho planner
+│   │   ├── TripPlanSnapshot.kt    # Domain model itinerary theo ngày/buổi
+│   │   ├── BudgetItem.kt          # Domain model + helpers cho budget planner
+│   │   ├── ChecklistItem.kt       # Domain model + helpers cho travel checklist
+│   │   └── TripExport.kt          # Format share/export sạch từ itinerary + budget/checklist
+│   ├── parser/
+│   │   └── ItineraryParser.kt     # Parser output AI: Ngày X / Sáng / Chiều / Tối
 │   └── repository/
 │       └── ChatRepository.kt      # inject ApiClient + Dao, expose suspend fun
 ├── ui/
@@ -83,10 +95,17 @@ app/src/main/java/com/travelai/
 │   │       ├── ChatBubble.kt      # user bubble (right) / AI bubble (left)
 │   │       └── MessageInput.kt    # TextField + Send button
 │   ├── history/
-│   │   ├── HistoryScreen.kt
+│   │   ├── HistoryScreen.kt       # Trip Library: search/rename/delete/pin/export session
 │   │   └── HistoryViewModel.kt
+│   ├── itinerary/
+│   │   ├── ItineraryScreen.kt     # UI lịch trình theo tab ngày + raw fallback
+│   │   ├── ItineraryViewModel.kt  # Load snapshot/raw itinerary + budget/checklist theo session
+│   │   ├── BudgetSection.kt       # UI thêm/sửa/xóa budget item
+│   │   └── ChecklistSection.kt    # UI thêm/xóa/tick checklist item
 │   ├── navigation/
-│   │   └── NavGraph.kt            # NavHost, routes: "chat", "history"
+│   │   └── NavGraph.kt            # NavHost, routes: "planner", "chat", "history", "itinerary/{sessionId}"
+│   ├── share/
+│   │   └── TripShare.kt           # Android ACTION_SEND helper cho export text
 │   └── theme/
 │       └── Theme.kt               # MaterialTheme, colors, typography
 ├── di/
@@ -148,7 +167,18 @@ app/src/main/java/com/travelai/
 - **Session** — 1 cuộc chat về 1 chuyến đi (vd: "3 ngày Đà Nẵng"). KHÔNG phải
   auth session.
 - **Message** — 1 tin nhắn trong session, có role "user" hoặc "assistant".
-- **Lịch trình** — output AI format ngày/buổi. Là Message, không phải entity riêng.
+- **Trip profile** — dữ liệu form tạo chuyến đi, lưu local theo `sessionId` để
+  tạo title và đưa context vào prompt DeepSeek.
+- **Lịch trình** — output AI format ngày/buổi. Vẫn lưu như Message, đồng thời có
+  `TripPlanSnapshotEntity` local để giữ raw response và parsed snapshot khi parser nhận diện được.
+- **Budget item** — khoản chi dự kiến local-only theo `sessionId`, có category,
+  title, amount VND, note; dùng trong `ItineraryScreen`.
+- **Checklist item** — việc chuẩn bị du lịch local-only theo `sessionId`, có
+  checkbox `isChecked` và lưu trạng thái qua Room.
+- **Trip Library** — `HistoryScreen` nâng cấp để quản lý session: search theo
+  title, rename, delete, pin/favorite và export lịch trình.
+- **Trip export** — text chia sẻ sạch, ưu tiên `TripPlanSnapshot` đã parse, kèm
+  trip profile/budget/checklist; không dump từng bubble chat thô.
 - **System prompt** — instruction gửi kèm mỗi API call để AI "biết" mình là
   trợ lý du lịch. Xem `Constants.kt`.
 - **Conversation history** — toàn bộ messages trong session, gửi lên DeepSeek
@@ -166,6 +196,8 @@ app/src/main/java/com/travelai/
   đủ cho MVP. Thêm sau nếu UX cần.
 - **AD-004:** Hilt cho DI — standard Android, AI training data nhiều, ít bug.
 - **AD-005:** Không làm Google Maps và GPS trong v1 — scope creep, làm sau.
+- **AD-006:** Dữ liệu local/Room không backup cloud mặc định — app local-only,
+  lịch sử chat là dữ liệu riêng tư nên `allowBackup=false` và backup rules exclude DB.
 
 ---
 
@@ -176,12 +208,32 @@ app/src/main/java/com/travelai/
   này sẽ compile error khó hiểu.
 - ⚠️ **Room + Coroutines:** DAO suspend fun tự động chạy trên IO dispatcher.
   KHÔNG wrap thêm `withContext(Dispatchers.IO)` — sẽ deadlock.
-- ⚠️ **OkHttp timeout:** DeepSeek có thể chậm > 10s cho response dài. Set
-  `readTimeout(30, TimeUnit.SECONDS)` trong OkHttpClient.
+- ⚠️ **OkHttp timeout:** DeepSeek có thể chậm > 10s cho response dài. `ApiClient`
+  hiện set `connectTimeout(15s)`, `writeTimeout(15s)`, `callTimeout(45s)`,
+  `readTimeout(30s)`. Chỉ set `readTimeout` không đủ — DNS/handshake treo sẽ
+  kéo dài đến lớp `withTimeout` của ViewModel mới bị hủy. Khi đổi base URL hoặc
+  thêm interceptor, giữ đủ 4 timeout này.
 - ⚠️ **Compose recomposition:** tránh tạo object mới trong Composable body
   (vd: `listOf()` inline) — sẽ trigger recompose liên tục. Dùng `remember {}`.
 - ⚠️ **local.properties:** file này KHÔNG được commit. Người clone repo mới
   phải tự tạo và thêm `DEEPSEEK_API_KEY=sk-...`.
+- ⚠️ **Windows Gradle/lint cache lock:** nếu `:app:lintDebug` hoặc `clean` báo
+  file trong `app/build/intermediates/lint-cache` đang bị process khác giữ, chạy
+  `gradlew --stop` cho cả Gradle home đang dùng rồi retry; không xóa source.
+- ⚠️ **Compose Material icons KHÔNG đi kèm Material3:** Compose BOM chỉ pin
+  version chứ không tự thêm artifact. Muốn dùng `Icons.Filled.*` /
+  `Icons.AutoMirrored.Filled.*` phải khai báo
+  `androidx.compose.material:material-icons-core` trong `libs.versions.toml`
+  và `app/build.gradle.kts`. Tránh `material-icons-extended` (~20MB,
+  thừa cho MVP) — các icon mở rộng như `CalendarMonth`, `History`, `Folder`,
+  `Description`, `Bookmark` thuộc bộ extended, không có trong core.
+- ⚠️ **Room `@Transaction` với function body cần class/abstract class:** Room
+  có thể annotate `@Transaction` lên `@Query`/`@Insert` (interface OK) nhưng
+  nếu cần body chạy nhiều DAO call atomic phải để DAO là `abstract class` với
+  hàm `open suspend fun`. `ChatDao` đã đổi sang abstract class — khi thêm DAO
+  mới có multi-write nên dùng cùng pattern thay vì gọi 2 `chatDao.xxx()` rời
+  rạc trong repo (sẽ làm `chat_sessions.updatedAt` lệch dữ liệu con khi app bị
+  kill giữa chừng).
 
 ---
 
